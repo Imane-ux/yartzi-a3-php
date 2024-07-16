@@ -1,11 +1,31 @@
 <?php
 session_start();
+// Allow from any origin
+if (isset($_SERVER['HTTP_ORIGIN'])) {
+    header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
+    header('Access-Control-Allow-Credentials: true');
+    header('Access-Control-Max-Age: 86400');    // cache for 1 day
+}
 
+// Access-Control headers are received during OPTIONS requests
+if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+
+    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD']))
+        header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+
+    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']))
+        header("Access-Control-Allow-Headers: {$_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']}");
+
+    exit(0);
+}
+
+//echo '<p>Current server time: ' . date('Y-m-d H:i:s') . '</p>';
 // Initialize game state and leaderboard in the session if not already set
 if (!isset($_SESSION['game_state'])) {
     $_SESSION['game_state'] = [
-        'playerDice' => [],
-        'playerScore' => [],
+        'playerDice' => [],//dice kept by player, i.e active
+        'randomDice' => [],
+        'playerScore' => [], //score for all rows?
         'rollCount' => 0,
         'numFilledRowScore' => 0
     ];
@@ -30,9 +50,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
     
     // Update playerDice, rollCount, etc. in $_SESSION['game_state']
-    $gameState['playerDice'] = $dice;
+    $gameState['randomDice'] = $dice;
+    //echo '<p>Current roll Count: ' . htmlspecialchars($gameState['rollCount']) . '</p>';
     $gameState['rollCount']++;
-
+    //echo '<p>Current roll Count2: ' . htmlspecialchars($gameState['rollCount']) . '</p>';
     /* Return updated game state as JSON response
     $response = $_SESSION['game_state'];
     echo json_encode($response);
@@ -41,6 +62,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     
     // Return updated game state as JSON response
     echo json_encode($gameState);
+    exit;
+}
+if ($_POST['action'] === 'updatePlayerDice') {
+    // Update playerDice based on data received from JavaScript
+    $randomDice = $_POST['randomDice']; // Assuming randomDice is sent as an array
+    
+    $gameState = $_SESSION['game_state']; //does this create a new one?
+    $gameState['playerDice'] = $randomDice;
+    $gameState['rollCount'] = $_SESSION['game_state']['rollCount'];
+    
+    $_SESSION['game_state'] = $gameState;
+    
+    // Return updated game state as JSON response
+    echo json_encode($gameState);
+    exit;
+}
+
+if ($_POST['action'] === 'getRollCount') {
+    // Return just the rollCount as plain text
+    echo $_SESSION['game_state']['rollCount'];
     exit;
 }
 

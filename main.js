@@ -38,7 +38,7 @@ const scoreTableCells=document.querySelectorAll(".cell");
 
 }*/
 function rollDice() {
-  fetch('yatzy.php', {
+  fetch('http://localhost:8000/yatzy.php', {
       method: 'POST',
       headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -53,8 +53,8 @@ function rollDice() {
 })
   .then(data => {
       // Update UI with rolled dice values
-      displayDice(data.playerDice); // Update displayDice function to handle this
-      console.log('Dice rolled:', data.playerDice);
+      displayDice(data.randomDice, data.rollCount, data.playerDice); // Update displayDice function to handle this
+      console.log('Dice rolled:', data.randomDice);
       console.log('Roll count:', data.rollCount);
 
       // Check roll count from server response to enable/disable roll button
@@ -73,7 +73,7 @@ rollButton.addEventListener('click', function() {
   }
 });
 
-function displayDice(dice) {
+function displayDice(dice, rollCount, playerDice) { 
     const playArea= document.querySelector(".DisplayOfRolling");
     const diceContainer = document.querySelector(".savedDiceDisplay"); //container
     //diceContainer.innerHTML = ""; // Clear previous dice
@@ -87,14 +87,14 @@ function displayDice(dice) {
 
             setTimeout(function(){
                 changeDiePosition(diceElement, x, y);
-                changeDiceFaces(dice);
-                writeTempValuesInScoreTable(playerDice); //added m
+                changeDiceFaces(dice, rollCount, playerDice); //Player Dice should be added
+                //writeTempValuesInScoreTable(playerDice); //added m
 
                 if (rollCount == 2) {
                     rollButton.disabled = true;
                     rollButton.style.opacity = 0.5;
                     console.log('No more rolls allowed. Enter a score First');
-                    writeTempValuesInScoreTable(playerDice);
+                    //writeTempValuesInScoreTable(playerDice);
                     
                   }
                 
@@ -120,17 +120,40 @@ function changeDiePosition(diceElement,x,y){
         "vh) rotate(" + angle + "deg)";
       }
 
-function changeDiceFaces(randomDice) {
+function changeDiceFaces(randomDice, rollCount, playerDice) {
         for (let i=0; i < diceElements.length;i++) {
+          //console.log('Current roll count in change:', rollCount);
           if(rollCount ===1) diceElements[i].classList.add("active");
           if(diceElements[i].classList.contains("active")) {
             playerDice[i]=randomDice[i];
-      
+            console.log('Current roll count after change :', rollCount);
             let face = diceElements[i].getElementsByClassName("face")[0];
             face.src="docs/design_system/images/dice"+randomDice[i]+".png";
           }
         }
+        updatePlayerDice(playerDice);
     }
+function updatePlayerDice(playerDice) {
+      fetch('http://localhost:8000/yatzy.php', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: 'action=updatePlayerDice&randomDice=' + JSON.stringify(playerDice)
+      })
+      .then(response => {
+          if (!response.ok) {
+              throw new Error('Network response was not ok');
+          }
+          return response.json();
+      })
+      .then(data => {
+          
+          console.log('Player dice updated on server:', data.playerDice);
+      })
+      .catch(error => console.error('Error updating player dice:', error));
+  }
+
 function resetDiceFaces() {
         for (let i=0;i<diceElements.length;i++){
           let face = diceElements[i].getElementsByClassName("face")[0];
@@ -138,11 +161,32 @@ function resetDiceFaces() {
           let diceNumber=i+1;
           face.src="docs/design_system/images/dice"+diceNumber+".png";
         }
+}
+
+function fetchRollCount() {
+  fetch('http://localhost:8000/yatzy.php', {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: 'action=getRollCount'
+  })
+  .then(response => {
+      if (!response.ok) {
+          throw new Error('Network response was not ok');
       }
+      return response.text(); 
+  })
+  .then(data => {
+      const rollCount = parseInt(data); // Parse the response as an integer
+      console.log('Current roll count:', rollCount);
+  })
+  .catch(error => console.error('Error fetching roll count:', error));
+}
 //Dice Elements'Events listeners
 diceElements.forEach(function(diceElement,index){
         diceElement.addEventListener("click",function(){
-          if(rollCount==0) return; //12.4
+          if(fetchRollCount()==0) return; //12.4
           diceElement.classList.toggle("active");
           if(!diceElement.classList.contains("active")){
             diceElement.style.transform="none";      
@@ -156,7 +200,7 @@ diceElements.forEach(function(diceElement,index){
           }
         })
     })
-function writeTempValuesInScoreTable(dice) {
+function writeTempValuesInScoreTable(dice) { // i was gonna add  playerScore here, but this but this should be done on php?
         let scoreTable= [];
         scoreTable= playerScore.slice();
         //onlyPossibleRow="blank";
