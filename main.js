@@ -88,13 +88,13 @@ function displayDice(dice, rollCount, playerDice) {
             setTimeout(function(){
                 changeDiePosition(diceElement, x, y);
                 changeDiceFaces(dice, rollCount, playerDice); //Player Dice should be added
-                //writeTempValuesInScoreTable(playerDice); //added m
+                writeTempValuesInScoreTable(playerDice); //added m
 
                 if (rollCount == 2) {
                     rollButton.disabled = true;
                     rollButton.style.opacity = 0.5;
                     console.log('No more rolls allowed. Enter a score First');
-                    //writeTempValuesInScoreTable(playerDice);
+                    writeTempValuesInScoreTable(playerDice);
                     
                   }
                 
@@ -200,7 +200,7 @@ diceElements.forEach(function(diceElement,index){
           }
         })
     })
-function writeTempValuesInScoreTable(dice) { // i was gonna add  playerScore here, but this but this should be done on php?
+/*function writeTempValuesInScoreTable(dice) { // i was gonna add  playerScore here, but this but this should be done on php?
         let scoreTable= [];
         scoreTable= playerScore.slice();
         //onlyPossibleRow="blank";
@@ -284,8 +284,86 @@ function writeTempValuesInScoreTable(dice) { // i was gonna add  playerScore her
         // can disable button gere as welll.
         ////12.1
 
-}
+}*/
 // updateScoreForCategory{} for the ones taht only have 1 possible row where the score can be entered
+/*function writeTempValuesInScoreTable(dice) {
+  // Convert dice array to JSON for sending to PHP
+  const diceJSON = JSON.stringify(dice);
+
+  // Fetch API request to PHP script
+  fetch('http://localhost:8000/yatzy.php', {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+          action: 'calculateScores', // Specify the action parameter
+          dice: diceJSON
+      })
+  })
+  .then(response => response.json()) // Parse JSON response
+  .then(response => {
+      console.log(response);
+      // Update score table based on PHP response
+      document.getElementById("Ones").innerHTML = response['Ones'];
+      console.log("got here");
+      document.getElementById("Twos").innerHTML = response['Twos'];
+      document.getElementById("Threes").innerHTML = response['Threes'];
+      document.getElementById("Fours").innerHTML = response['Fours'];
+      document.getElementById("Fives").innerHTML = response['Fives'];
+      document.getElementById("Sixes").innerHTML = response['Sixes'];
+      document.getElementById("OnePair").innerHTML = response['OnePair'];
+      document.getElementById("TwoPair").innerHTML = response['TwoPair'];
+      document.getElementById("ThreeOfKind").innerHTML = response['ThreeOfKind'];
+      document.getElementById("FourOfKind").innerHTML = response['FourOfKind'];
+      document.getElementById("smallStraight").innerHTML = response['smallStraight'];
+      document.getElementById("LargeStraight").innerHTML = response['LargeStraight'];
+      document.getElementById("FullHouse").innerHTML = response['FullHouse'];
+      document.getElementById("chance").innerHTML = response['chance'];
+      document.getElementById("yatzy").innerHTML = response['yatzy'];
+
+      // Update other categories similarly
+  })
+  .catch(error => {
+      console.error("Error:", error);
+      // Handle error if needed
+  });
+}*/
+
+function writeTempValuesInScoreTable() {
+  fetch('http://localhost:8000/yatzy.php', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded', // Adjusted to form-urlencoded
+    },
+    body: 'action=calculateScores', // No need to send dice data anymore
+  })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.text(); // Expecting HTML/text response
+    })
+    .then(htmlResponse => {
+
+      //console.log('HTML Response:', htmlResponse);
+      const response = JSON.parse(htmlResponse);
+      //console.log('Parsed Response:', response); // Check if response is parsed correctly
+      // You can update the score table or handle the HTML response as needed
+      Object.keys(response).forEach(category => {
+        const element = document.getElementById(category);
+        if (element) {
+          element.innerHTML = response[category];
+        }
+      });
+
+      console.log('Score table updated on client');
+      // Example: Assuming htmlResponse contains the updated score table HTML
+      //document.getElementById('scoreTableContainer').innerHTML = htmlResponse;
+    })
+    .catch(error => console.error('Error updating score table:', error));
+}
+
 
 scoreTableCells.forEach(function(cell){
     cell.addEventListener("click",onCellClick);
